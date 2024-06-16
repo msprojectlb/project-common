@@ -42,5 +42,6 @@ func TestGrpcServer2(t *testing.T) {
 		Address: "0.0.0.0:8081",
 	}, mygrpc.WithRegistry(register))
 	gen.RegisterAppServiceServer(server, &AppServer{})
-	server.Start(":8081")
+	err = server.Start(":8081")
+	require.NoError(t, err)
 }
