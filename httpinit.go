@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"log"
@@ -33,7 +34,7 @@ func (h *HttpInit) Run() {
 	//保证下面的优雅启停
 	go func() {
 		log.Printf("%s running in %s \n", h.servName, srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalln(err)
 		}
 	}()

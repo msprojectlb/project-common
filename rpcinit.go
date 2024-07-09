@@ -68,7 +68,7 @@ func (rs *RpcServer) Close() {
 }
 
 func ConnectRpc(serviceName string, r registry.Registry) *grpc.ClientConn {
-	conn, err := grpc.Dial("etcd:///"+serviceName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(r)))
+	conn, err := grpc.NewClient("etcd:///"+serviceName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(r)))
 	if err != nil {
 		log.Fatalf("did not connect %s : %v", serviceName, err)
 	}

@@ -33,7 +33,7 @@ func loggerfunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo
 		fmt.Println(err)
 
 	}
-	fmt.Printf("请求结束，结果参数为%+v", res)
+	fmt.Printf("请求结束，结果参数为%+v\n", res)
 	return res, err
 }
 func NewGrpcServer(si registry.ServiceInstance, opts ...Options) *GrpcServer {
