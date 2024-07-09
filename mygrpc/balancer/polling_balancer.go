@@ -1,7 +1,6 @@
 package balancer
 
 import (
-	"errors"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
 	"math"
@@ -13,7 +12,7 @@ type PollingBalancer struct {
 }
 
 func (p *PollingBalancer) Build(info base.PickerBuildInfo) balancer.Picker {
-	var res Picker
+	var res PollingPicker
 	res.connection = make([]balancer.SubConn, 0, len(info.ReadySCs))
 
 	for conn := range info.ReadySCs {
@@ -25,16 +24,16 @@ func (p *PollingBalancer) Build(info base.PickerBuildInfo) balancer.Picker {
 	return &res
 }
 
-type Picker struct {
+type PollingPicker struct {
 	index      int32
 	length     int32
 	connection []balancer.SubConn
 }
 
-func (p *Picker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
+func (p *PollingPicker) Pick(info balancer.PickInfo) (balancer.PickResult, error) {
 	var res balancer.PickResult
 	if p.length == 0 {
-		return res, errors.New("empty connection")
+		return res, balancer.ErrNoSubConnAvailable
 	}
 	idx := atomic.AddInt32(&p.index, 1)
 	if idx > math.MaxInt32 {

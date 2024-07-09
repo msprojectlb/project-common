@@ -3,6 +3,7 @@ package mygrpc
 import (
 	"context"
 	"github.com/msprojectlb/project-common/mygrpc/registry"
+	"google.golang.org/grpc/attributes"
 	"google.golang.org/grpc/resolver"
 	"time"
 )
@@ -52,7 +53,11 @@ func (r *Resolver) ResolveNow(options resolver.ResolveNowOptions) {
 	}
 	address := make([]resolver.Address, 0, len(serviceInstances))
 	for _, instance := range serviceInstances {
-		address = append(address, resolver.Address{Addr: instance.Address, ServerName: instance.Name})
+		address = append(address, resolver.Address{
+			Addr:       instance.Address,
+			ServerName: instance.Name,
+			Attributes: attributes.New("weight", instance.Weight).WithValue("tag", instance.Tag),
+		})
 	}
 	err = r.cc.UpdateState(resolver.State{
 		Addresses: address,
