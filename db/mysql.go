@@ -43,25 +43,25 @@ func NewMysql(mysqlConf config.MysqlConfig, gormConf config.GormConfig, writer *
 			Colorful:                  gormConf.Colorful,                  // Disable color
 		},
 	)
-	dbobj, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	dbObj, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: newLogger,
 	})
 	if err != nil {
 		log.Fatal("Mysql连接失败", err.Error())
 	}
-	sqldb, err := dbobj.DB()
+	sqlDb, err := dbObj.DB()
 	if err != nil {
 		log.Fatal("数据库获取失败", err.Error())
 	}
 	//最大空闲连接时间
-	sqldb.SetConnMaxIdleTime(mysqlConf.MaxIdleTime)
+	sqlDb.SetConnMaxIdleTime(mysqlConf.MaxIdleTime)
 	//空闲连接池最大数量
-	sqldb.SetMaxIdleConns(mysqlConf.MaxIdleConns)
+	sqlDb.SetMaxIdleConns(mysqlConf.MaxIdleConns)
 	//最大打开的连接数
-	sqldb.SetMaxOpenConns(mysqlConf.MaxOpenConns)
+	sqlDb.SetMaxOpenConns(mysqlConf.MaxOpenConns)
 	//连接可复用的最长时间
-	sqldb.SetConnMaxLifetime(mysqlConf.MaxLifetime)
+	sqlDb.SetConnMaxLifetime(mysqlConf.MaxLifetime)
 	return &MysqlDb{
-		db: dbobj,
+		db: dbObj,
 	}
 }
