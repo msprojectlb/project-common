@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"errors"
 	"github.com/msprojectlb/project-common/db"
 	"github.com/redis/go-redis/v9"
 	"time"
@@ -21,7 +22,7 @@ func (rc *RedisCache) Put(ctx context.Context, key, value string, expire time.Du
 }
 func (rc *RedisCache) Get(ctx context.Context, key string) (string, error) {
 	result, err := rc.Rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return "", nil
 	}
 	return result, err
