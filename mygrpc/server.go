@@ -25,13 +25,12 @@ func WithRegistry(r registry.Registry) Options {
 		s.registry = r
 	}
 }
-func loggerfunc(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	fmt.Printf("请求Server:%+v\n", info.Server)
-	fmt.Printf("请求FullMethod:%s\n", info.FullMethod)
+func loggerfunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+	//fmt.Printf("请求Server:%+v\n", info.Server)
+	//fmt.Printf("请求FullMethod:%s\n", info.FullMethod)
 	res, err := handler(ctx, req)
 	if err != nil {
 		fmt.Println(err)
-
 	}
 	fmt.Printf("请求结束，结果参数为%+v\n", res)
 	return res, err

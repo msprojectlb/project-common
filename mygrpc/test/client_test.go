@@ -5,7 +5,7 @@ import (
 	"github.com/msprojectlb/project-common/mygrpc"
 	mybalancer "github.com/msprojectlb/project-common/mygrpc/balancer"
 	"github.com/msprojectlb/project-common/mygrpc/registry/byEtcd"
-	"github.com/msprojectlb/project-common/mygrpc/test/gen"
+	"github.com/msprojectlb/project-common/mygrpc/test/proto"
 	"github.com/stretchr/testify/require"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -38,13 +38,13 @@ func TestGrpcClient(t *testing.T) {
 	dial, err := grpc.NewClient("etcd:///appserver", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(register)), grpc.WithDefaultServiceConfig(`{"LoadBalancingPolicy":"LOADBALANCING"}`))
 	require.NoError(t, err)
 	defer dial.Close()
-	client := gen.NewAppServiceClient(dial)
+	client := proto.NewTestServiceClient(dial)
 	var wg sync.WaitGroup
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			hello, err := client.Hello(context.Background(), &gen.HelloReq{Name: "张三__" + strconv.Itoa(i)})
+			hello, err := client.Hello(context.Background(), &proto.HelloReq{Name: "张三__" + strconv.Itoa(i)})
 			require.NoError(t, err)
 			t.Log(hello)
 		}(i)
@@ -61,13 +61,13 @@ func TestGrpcClientWithWeightPollingBalance(t *testing.T) {
 	dial, err := grpc.NewClient("etcd:///appserver", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(register)), grpc.WithDefaultServiceConfig(`{"LoadBalancingPolicy":"weight-polling-balance"}`))
 	require.NoError(t, err)
 	defer dial.Close()
-	client := gen.NewAppServiceClient(dial)
+	client := proto.NewTestServiceClient(dial)
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			hello, err := client.Hello(context.Background(), &gen.HelloReq{Name: "张三__" + strconv.Itoa(i)})
+			hello, err := client.Hello(context.Background(), &proto.HelloReq{Name: "张三__" + strconv.Itoa(i)})
 			require.NoError(t, err)
 			t.Log(hello)
 		}(i)

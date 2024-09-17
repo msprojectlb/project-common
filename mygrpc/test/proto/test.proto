@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "github.com/msprojectlb/project-grpc/proto";
+
+package proto;
+
+message HelloReq {
+  string name = 1;
+}
+
+message HelloRes {
+  int32 id = 1;
+  string userName = 2;
+}
+
+
+
+
+
+
+
+
+service TestService {
+  rpc Hello(HelloReq) returns (HelloRes);
+}
