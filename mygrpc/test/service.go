@@ -2,18 +2,18 @@ package test
 
 import (
 	"context"
-	"github.com/msprojectlb/project-common/mygrpc/test/gen"
+	"github.com/msprojectlb/project-common/mygrpc/test/proto"
 	"math/rand"
 )
 
 type AppServer struct {
-	gen.UnimplementedAppServiceServer
+	proto.UnimplementedTestServiceServer
 }
 
-func (a *AppServer) Hello(ctx context.Context, req *gen.HelloReq) (*gen.HelloRes, error) {
+func (a *AppServer) Hello(ctx context.Context, req *proto.HelloReq) (*proto.HelloRes, error) {
 	name := req.Name
-	return &gen.HelloRes{
+	return &proto.HelloRes{
 		Id:       int32(rand.Intn(2000)),
-		Username: name,
+		UserName: name,
 	}, nil
 }
