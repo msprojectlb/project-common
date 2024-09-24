@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 )
 
+const PollingBalancerName = "polling-balancer"
+
 // PollingBalancer 轮询
 type PollingBalancer struct {
 }

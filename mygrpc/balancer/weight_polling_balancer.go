@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const WeightPollingBalancerName = "weight-polling-balancer"
+
 type node struct {
 	conn            balancer.SubConn
 	weight          int
