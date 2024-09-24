@@ -1,9 +1,9 @@
-package mygrpc
+package grpc
 
 import (
 	"context"
 	"fmt"
-	"github.com/msprojectlb/project-common/mygrpc/registry"
+	"github.com/msprojectlb/project-common/grpc/registry"
 	"google.golang.org/grpc"
 	"log"
 	"net"

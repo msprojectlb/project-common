@@ -2,10 +2,11 @@ package test
 
 import (
 	"context"
-	"github.com/msprojectlb/project-common/mygrpc"
-	mybalancer "github.com/msprojectlb/project-common/mygrpc/balancer"
-	"github.com/msprojectlb/project-common/mygrpc/registry/byEtcd"
-	"github.com/msprojectlb/project-common/mygrpc/test/proto"
+	"fmt"
+	"github.com/msprojectlb/project-common/grpc"
+	mybalancer "github.com/msprojectlb/project-common/grpc/balancer"
+	"github.com/msprojectlb/project-common/grpc/registry/byEtcd"
+	"github.com/msprojectlb/project-common/grpc/test/proto"
 	"github.com/stretchr/testify/require"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
@@ -29,13 +30,17 @@ func init() {
 	}
 }
 
-func TestGrpcClient(t *testing.T) {
+func TestGrpcClientWithPollingBalance(t *testing.T) {
 	register, err := byEtcd.NewRegister(etcdClient, 30)
 	require.NoError(t, err)
 	//初始化负载均衡器
-	balancer.Register(base.NewBalancerBuilder("LOADBALANCING", &mybalancer.PollingBalancer{}, base.Config{HealthCheck: true}))
+	balancer.Register(base.NewBalancerBuilder(mybalancer.PollingBalancerName, &mybalancer.PollingBalancer{}, base.Config{HealthCheck: true}))
 
-	dial, err := grpc.NewClient("etcd:///appserver", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(register)), grpc.WithDefaultServiceConfig(`{"LoadBalancingPolicy":"LOADBALANCING"}`))
+	dial, err := grpc.NewClient(
+		"etcd:///appserver",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithResolvers(grpc.NewGrpcResolverBuilder(register)),
+		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy":"%s"}`, mybalancer.PollingBalancerName)))
 	require.NoError(t, err)
 	defer dial.Close()
 	client := proto.NewTestServiceClient(dial)
@@ -56,9 +61,13 @@ func TestGrpcClientWithWeightPollingBalance(t *testing.T) {
 	register, err := byEtcd.NewRegister(etcdClient, 30)
 	require.NoError(t, err)
 	//初始化加权轮询均衡器
-	balancer.Register(base.NewBalancerBuilder("weight-polling-balance", &mybalancer.WeightPollingBalancer{}, base.Config{HealthCheck: true}))
+	balancer.Register(base.NewBalancerBuilder(mybalancer.WeightPollingBalancerName, &mybalancer.WeightPollingBalancer{}, base.Config{HealthCheck: true}))
 
-	dial, err := grpc.NewClient("etcd:///appserver", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(register)), grpc.WithDefaultServiceConfig(`{"LoadBalancingPolicy":"weight-polling-balance"}`))
+	dial, err := grpc.NewClient(
+		"etcd:///appserver",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithResolvers(grpc.NewGrpcResolverBuilder(register)),
+		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy":"%s"}`, mybalancer.WeightPollingBalancerName)))
 	require.NoError(t, err)
 	defer dial.Close()
 	client := proto.NewTestServiceClient(dial)

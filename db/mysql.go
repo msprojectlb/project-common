@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/msprojectlb/project-common/config"
-	"github.com/msprojectlb/project-common/logs/writer"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/msprojectlb/project-common/logs"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -23,7 +22,7 @@ func (m *MysqlDb) Db(ctx context.Context) *gorm.DB {
 	return m.db.Session(&gorm.Session{Context: ctx})
 }
 
-func NewMysql(mysqlConf config.MysqlConfig, gormConf config.GormConfig, writer *writer.GormWriter) *MysqlDb {
+func NewMysql(mysqlConf config.MysqlConfig, gormConf config.GormConfig, writer *logs.ZapWriter) *MysqlDb {
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
 		mysqlConf.User,
@@ -34,7 +33,7 @@ func NewMysql(mysqlConf config.MysqlConfig, gormConf config.GormConfig, writer *
 		mysqlConf.CharSet,
 	)
 	newLogger := logger.New(
-		log.New((*lumberjack.Logger)(writer), "\r\n", log.LstdFlags), // io newWriter
+		log.New(writer, "\r\n", log.LstdFlags), // io newWriter
 		logger.Config{
 			SlowThreshold:             gormConf.SlowThreshold,             // Slow SQL threshold
 			LogLevel:                  gormConf.LogLevel,                  // Log level

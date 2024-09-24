@@ -3,8 +3,8 @@ package common
 import (
 	"context"
 	"github.com/msprojectlb/project-common/config"
-	"github.com/msprojectlb/project-common/mygrpc"
-	"github.com/msprojectlb/project-common/mygrpc/registry"
+	"github.com/msprojectlb/project-common/grpc"
+	"github.com/msprojectlb/project-common/grpc/registry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -68,7 +68,7 @@ func (rs *RpcServer) Close() {
 }
 
 func ConnectRpc(serviceName string, r registry.Registry) *grpc.ClientConn {
-	conn, err := grpc.NewClient("etcd:///"+serviceName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(mygrpc.NewGrpcResolverBuilder(r)))
+	conn, err := grpc.NewClient("etcd:///"+serviceName, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithResolvers(grpc.NewGrpcResolverBuilder(r)))
 	if err != nil {
 		log.Fatalf("did not connect %s : %v", serviceName, err)
 	}

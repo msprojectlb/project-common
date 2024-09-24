@@ -1,8 +1,8 @@
-package mygrpc
+package grpc
 
 import (
 	"context"
-	"github.com/msprojectlb/project-common/mygrpc/registry"
+	"github.com/msprojectlb/project-common/grpc/registry"
 	"google.golang.org/grpc/attributes"
 	"google.golang.org/grpc/resolver"
 	"time"

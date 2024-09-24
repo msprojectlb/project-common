@@ -2,7 +2,7 @@ package test
 
 import (
 	"context"
-	"github.com/msprojectlb/project-common/mygrpc/test/proto"
+	"github.com/msprojectlb/project-common/grpc/test/proto"
 	"math/rand"
 )
 
