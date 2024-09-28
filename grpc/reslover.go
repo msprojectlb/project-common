@@ -10,17 +10,17 @@ import (
 
 const SCHEME = "etcd"
 
-type grpcResolverBuilder struct {
+type ResolverBuilder struct {
 	r registry.Registry
 }
 
-func NewGrpcResolverBuilder(r registry.Registry) *grpcResolverBuilder {
-	return &grpcResolverBuilder{
+func NewResolverBuilder(r registry.Registry) *ResolverBuilder {
+	return &ResolverBuilder{
 		r: r,
 	}
 }
 
-func (b *grpcResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
+func (b *ResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r := &Resolver{
 		cc:     cc,
 		r:      b.r,
@@ -32,7 +32,7 @@ func (b *grpcResolverBuilder) Build(target resolver.Target, cc resolver.ClientCo
 	return r, nil
 }
 
-func (b *grpcResolverBuilder) Scheme() string {
+func (b *ResolverBuilder) Scheme() string {
 	return SCHEME
 }
 

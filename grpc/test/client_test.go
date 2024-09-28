@@ -3,12 +3,11 @@ package test
 import (
 	"context"
 	"fmt"
-	"github.com/msprojectlb/project-common/grpc"
+	myGrpc "github.com/msprojectlb/project-common/grpc"
 	mybalancer "github.com/msprojectlb/project-common/grpc/balancer"
 	"github.com/msprojectlb/project-common/grpc/registry/byEtcd"
 	"github.com/msprojectlb/project-common/grpc/test/proto"
 	"github.com/stretchr/testify/require"
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
@@ -18,19 +17,8 @@ import (
 	"testing"
 )
 
-var etcdClient *clientv3.Client
-
-func init() {
-	var err error
-	etcdClient, err = clientv3.New(clientv3.Config{Endpoints: []string{
-		"127.0.0.1:2379",
-	}})
-	if err != nil {
-		panic(err)
-	}
-}
-
 func TestGrpcClientWithPollingBalance(t *testing.T) {
+	etcdClient := Init()
 	register, err := byEtcd.NewRegister(etcdClient, 30)
 	require.NoError(t, err)
 	//初始化负载均衡器
@@ -39,7 +27,7 @@ func TestGrpcClientWithPollingBalance(t *testing.T) {
 	dial, err := grpc.NewClient(
 		"etcd:///appserver",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithResolvers(grpc.NewGrpcResolverBuilder(register)),
+		grpc.WithResolvers(myGrpc.NewResolverBuilder(register)),
 		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy":"%s"}`, mybalancer.PollingBalancerName)))
 	require.NoError(t, err)
 	defer dial.Close()
@@ -58,6 +46,7 @@ func TestGrpcClientWithPollingBalance(t *testing.T) {
 }
 
 func TestGrpcClientWithWeightPollingBalance(t *testing.T) {
+	etcdClient := Init()
 	register, err := byEtcd.NewRegister(etcdClient, 30)
 	require.NoError(t, err)
 	//初始化加权轮询均衡器
@@ -66,7 +55,7 @@ func TestGrpcClientWithWeightPollingBalance(t *testing.T) {
 	dial, err := grpc.NewClient(
 		"etcd:///appserver",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithResolvers(grpc.NewGrpcResolverBuilder(register)),
+		grpc.WithResolvers(myGrpc.NewResolverBuilder(register)),
 		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy":"%s"}`, mybalancer.WeightPollingBalancerName)))
 	require.NoError(t, err)
 	defer dial.Close()

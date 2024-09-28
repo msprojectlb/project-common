@@ -1,0 +1,43 @@
+app:
+  name: 'project-user'
+  addr: '127.0.0.1:8881'
+  weight: 10
+  tag: '1.0.0'
+  env: 'dev' # dev,prod
+  log:
+    level: 'info'
+    encode: 'console' # json,console
+    file: './logs/project_user.log'
+    maxSize: 200 # 日志文件最大容量 MB
+    maxAge: 90 # 最大保存天数
+    compress: false # 是否压缩
+  jwt:
+    accessExp: 7
+    refreshExp: 14
+    accessSecret: msproject
+    refreshSecret: ms_project
+etcd:
+  addr:
+    - '127.0.0.1:2379'
+redis:
+  addr: '127.0.0.1:6379'
+  password: ''
+  db: 0
+mysql:
+  user: root
+  password: root
+  host: 127.0.0.1
+  port: 3309
+  db: msproject
+  charset: 'utf8mb4,utf8'
+  MaxIdleTime: 30   # 最大空闲连接时间(seconds)
+  MaxIdleConns: 10  # 空闲连接池最大数量
+  MaxOpenConns: 100 # 最大打开的连接数
+  MaxLifetime: 60   # 连接可复用的最长时间(minutes)
+  gorm:
+    level: 4                           # 4:info log 3:warn log 2:error log 1:silent log
+    SlowThreshold: 10                  # 慢查询时间 毫秒
+    ParameterizedQueries: true         # 日志中不显示查询参数
+    IgnoreRecordNotFoundError: true    # 忽略记录未找到错误
+    Colorful: true                     # 颜色
+

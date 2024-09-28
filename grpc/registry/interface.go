@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"github.com/spf13/viper"
 	"io"
 )
 
@@ -26,4 +27,13 @@ type ServiceInstance struct {
 
 type Even struct {
 	Type string
+}
+
+func NewServiceInstance(viper *viper.Viper) ServiceInstance {
+	return ServiceInstance{
+		Name:    viper.GetString("app.name"),
+		Address: viper.GetString("app.addr"),
+		Tag:     viper.GetString("app.tag"),
+		Weight:  viper.GetInt("app.weight"),
+	}
 }

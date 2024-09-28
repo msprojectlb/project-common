@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"github.com/msprojectlb/project-common/grpc/registry"
+	"github.com/msprojectlb/project-common/logs"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -13,32 +13,49 @@ import (
 	"time"
 )
 
-type GrpcServer struct {
+type Server struct {
 	si registry.ServiceInstance
 	*grpc.Server
 	registry registry.Registry
+	log      *logs.ZapLogger
 }
-type Options func(s *GrpcServer)
+type Options func(s *Server)
 
+// WithRegistry 注入注册中心
 func WithRegistry(r registry.Registry) Options {
-	return func(s *GrpcServer) {
+	return func(s *Server) {
 		s.registry = r
 	}
 }
-func loggerfunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-	//fmt.Printf("请求Server:%+v\n", info.Server)
-	//fmt.Printf("请求FullMethod:%s\n", info.FullMethod)
-	res, err := handler(ctx, req)
-	if err != nil {
-		fmt.Println(err)
+
+func WithLogger(log *logs.ZapLogger) Options {
+	return func(s *Server) {
+		s.log = log
 	}
-	fmt.Printf("请求结束，结果参数为%+v\n", res)
-	return res, err
 }
-func NewGrpcServer(si registry.ServiceInstance, opts ...Options) *GrpcServer {
-	rs := &GrpcServer{
+
+func loggerFunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+	resp, err = handler(ctx, req)
+	if err != nil {
+		logs.Helper.Error("req:",
+			zap.Any("serv:", info.Server),
+			zap.String("method:", info.FullMethod),
+			zap.Any("res:", resp),
+			zap.Error(err),
+		)
+	}
+	logs.Helper.Info("req:",
+		zap.Any("serv:", info.Server),
+		zap.String("method:", info.FullMethod),
+		zap.Any("res:", resp),
+		zap.Error(err),
+	)
+	return
+}
+func NewServer(si registry.ServiceInstance, opts ...Options) *Server {
+	rs := &Server{
 		si:     si,
-		Server: grpc.NewServer(grpc.UnaryInterceptor(loggerfunc)),
+		Server: grpc.NewServer(grpc.UnaryInterceptor(loggerFunc)),
 	}
 	for _, opt := range opts {
 		opt(rs)
@@ -46,38 +63,37 @@ func NewGrpcServer(si registry.ServiceInstance, opts ...Options) *GrpcServer {
 	return rs
 }
 
-func (s *GrpcServer) Start(addr string) error {
-	listen, err := net.Listen("tcp", addr)
+func (s *Server) Start() {
+	listen, err := net.Listen("tcp", s.si.Address)
 	if err != nil {
-		return err
+		s.log.Panic("net.listen error", zap.Error(err))
 	}
 	if s.registry != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer s.Close()
 		s.si.Address = listen.Addr().String()
-		err := s.registry.Register(ctx, s.si)
-		cancel()
+		err = s.registry.Register(context.Background(), s.si)
 		if err != nil {
-			return err
+			s.log.Panic("registry.Register error", zap.Error(err))
 		}
-		defer func() {
-			s.Close()
-		}()
 	}
 	go func() {
 		quit := make(chan os.Signal)
-		//SIGINT 用户发送INTR字符(Ctrl+C)触发 kill -2
-		//SIGTERM 结束程序(可以被捕获、阻塞或忽略)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		<-quit
-		log.Printf("grpc server %s Shutting Down at %s... \n", s.si.Name, s.si.Address)
+		s.log.Info("grpc server Shutting Down", zap.String("name", s.si.Name), zap.String("addr", s.si.Address))
 		s.Close()
 	}()
-	err = s.Serve(listen)
-	return err
+	if err = s.Serve(listen); err != nil {
+		s.log.Panic("grpc.Serve error", zap.Error(err))
+	}
 }
-func (s *GrpcServer) Close() {
+func (s *Server) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	s.registry.UnRegister(ctx, s.si)
+	defer s.log.Sync()
+	err := s.registry.UnRegister(ctx, s.si)
+	if err != nil {
+		s.log.Error("registry.UnRegister error", zap.Error(err))
+	}
 	s.GracefulStop()
 }

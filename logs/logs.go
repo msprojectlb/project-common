@@ -1,21 +1,32 @@
 package logs
 
 import (
-	"github.com/msprojectlb/project-common/config"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"io"
 	"os"
+	"sync"
 	"time"
 )
+
+var Helper *ZapLogger
+var once sync.Once
 
 // ZapLogger 通用日志
 type ZapLogger struct {
 	*zap.Logger
 }
 
-func NewZapLogger(conf config.ZapLogConf, w *ZapWriter) *ZapLogger {
+func InitHelper(log *ZapLogger) {
+	once.Do(func() {
+		Helper = log
+	})
+}
+
+func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
 	var level zapcore.Level
-	switch conf.Level {
+	switch viper.GetString("app.log.level") {
 	case "debug":
 		level = zap.DebugLevel
 	case "info":
@@ -28,7 +39,7 @@ func NewZapLogger(conf config.ZapLogConf, w *ZapWriter) *ZapLogger {
 		level = zap.InfoLevel
 	}
 	var encoder zapcore.Encoder
-	if conf.Encoding == "console" {
+	if viper.GetString("app.log.encode") == "console" {
 		encoder = zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
@@ -48,12 +59,12 @@ func NewZapLogger(conf config.ZapLogConf, w *ZapWriter) *ZapLogger {
 			LevelKey:       "level",
 			NameKey:        "logger",
 			CallerKey:      "caller",
-			FunctionKey:    zapcore.OmitKey,
+			FunctionKey:    "func",
 			MessageKey:     "msg",
 			StacktraceKey:  "stacktrace",
 			LineEnding:     zapcore.DefaultLineEnding,
 			EncodeLevel:    zapcore.LowercaseLevelEncoder,
-			EncodeTime:     zapcore.EpochTimeEncoder,
+			EncodeTime:     timeEncoder,
 			EncodeDuration: zapcore.SecondsDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		})
@@ -64,7 +75,7 @@ func NewZapLogger(conf config.ZapLogConf, w *ZapWriter) *ZapLogger {
 		zapcore.AddSync(w), // 仅打印到文件
 		level,              // 日志级别
 	)
-	if conf.Environment == "debug" {
+	if viper.GetString("app.env") == "dev" {
 		core = zapcore.NewCore(
 			encoder, // 编码器配置
 			zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(w)), // 打印到控制台和文件
