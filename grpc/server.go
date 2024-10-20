@@ -43,6 +43,7 @@ func loggerFunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handle
 			zap.Any("res:", resp),
 			zap.Error(err),
 		)
+		return
 	}
 	logs.Helper.Info("req:",
 		zap.Any("serv:", info.Server),
@@ -56,6 +57,7 @@ func NewServer(si registry.ServiceInstance, opts ...Options) *Server {
 	rs := &Server{
 		si:     si,
 		Server: grpc.NewServer(grpc.UnaryInterceptor(loggerFunc)),
+		log:    logs.Helper,
 	}
 	for _, opt := range opts {
 		opt(rs)

@@ -75,6 +75,7 @@ func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
 		zapcore.AddSync(w), // 仅打印到文件
 		level,              // 日志级别
 	)
+	var res ZapLogger
 	if viper.GetString("app.env") == "dev" {
 		core = zapcore.NewCore(
 			encoder, // 编码器配置
@@ -82,10 +83,14 @@ func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
 			level, // 日志级别
 		)
 		//开发环境
-		return &ZapLogger{zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
+		res.Logger = zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+		InitHelper(&res)
+		return &res
 	}
+	res.Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 	//正式环境
-	return &ZapLogger{zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
+	InitHelper(&res)
+	return &res
 }
 
 // 自定义时间编码器

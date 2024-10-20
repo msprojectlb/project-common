@@ -2,10 +2,8 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"github.com/msprojectlb/project-common/config"
 	"github.com/redis/go-redis/v9"
-	"log"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -18,16 +16,16 @@ func NewRedisDb(rdb *redis.Client) *RedisDb {
 }
 
 // NewSingleRdb 单节点
-func NewSingleRdb(conf config.RedisConfig) *redis.Client {
+func NewSingleRdb(viper *viper.Viper) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     conf.Addr,
-		Password: conf.Password,
-		DB:       conf.Db,
+		Addr:     viper.GetString("redis.addr"),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.db"),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Fatalf(fmt.Sprintf("redis 连接失败: %s", err.Error()))
+		panic(err)
 	}
 	return rdb
 }

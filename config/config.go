@@ -12,16 +12,6 @@ type ViperConf struct {
 	ConfigPath   []string
 }
 
-func NewViperConf(automaticEnv bool, envPrefix string, configType string, confName string, configPath []string) *ViperConf {
-	return &ViperConf{
-		AutomaticEnv: automaticEnv,
-		EnvPrefix:    envPrefix,
-		ConfigType:   configType,
-		ConfName:     confName,
-		ConfigPath:   configPath,
-	}
-}
-
 type JWTConfig struct {
 	AccessExp     time.Duration
 	RefreshExp    time.Duration
