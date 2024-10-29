@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"fmt"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -9,6 +10,8 @@ import (
 	"sync"
 	"time"
 )
+
+const MsgName = "msg"
 
 var Helper *ZapLogger
 var once sync.Once
@@ -91,6 +94,43 @@ func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
 	//正式环境
 	InitHelper(&res)
 	return &res
+}
+
+func (l *ZapLogger) LogInfo(msg any) {
+	l.Info(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogError(msg any) {
+	l.Error(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogWarn(msg any) {
+	l.Warn(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogDebug(msg any) {
+	l.Debug(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogFatal(msg any) {
+	l.Fatal(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogPanic(msg any) {
+	l.Panic(MsgName, zap.Any("", msg))
+}
+func (l *ZapLogger) LogInfoF(fmtStr string, args ...any) {
+	l.Info(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
+}
+func (l *ZapLogger) LogErrorF(fmtStr string, args ...any) {
+	l.Error(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
+}
+func (l *ZapLogger) LogWarnF(fmtStr string, args ...any) {
+	l.Warn(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
+}
+func (l *ZapLogger) LogDebugF(fmtStr string, args ...any) {
+	l.Debug(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
+}
+func (l *ZapLogger) LogFatalF(fmtStr string, args ...any) {
+	l.Fatal(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
+}
+func (l *ZapLogger) LogPanicF(fmtStr string, args ...any) {
+	l.Panic(MsgName, zap.String("", fmt.Sprintf(fmtStr, args...)))
 }
 
 // 自定义时间编码器

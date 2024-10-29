@@ -9,6 +9,7 @@ import (
 	"github.com/msprojectlb/project-common/logs"
 	"github.com/stretchr/testify/require"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"google.golang.org/grpc"
 	"testing"
 	"time"
 )
@@ -30,6 +31,11 @@ func Init() *clientv3.Client {
 	logs.InitHelper(logs.NewZapLogger(viper, logs.NewZapWriter(viper)))
 	return etcdServer
 }
+
+func registerService(s grpc.ServiceRegistrar) {
+	proto.RegisterTestServiceServer(s, &AppServer{})
+}
+
 func TestGrpcServer(t *testing.T) {
 	etcdServer := Init()
 	t.Run("8080", func(t *testing.T) {
@@ -39,8 +45,7 @@ func TestGrpcServer(t *testing.T) {
 			Name:    "appserver",
 			Address: "0.0.0.0:8080",
 			Weight:  40,
-		}, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
-		proto.RegisterTestServiceServer(server, &AppServer{})
+		}, registerService, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
 		server.Start()
 	})
 	t.Run("8084", func(t *testing.T) {
@@ -50,8 +55,7 @@ func TestGrpcServer(t *testing.T) {
 			Name:    "appserver",
 			Address: "0.0.0.0:8084",
 			Weight:  40,
-		}, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
-		proto.RegisterTestServiceServer(server, &AppServer{})
+		}, registerService, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
 		server.Start()
 	})
 	t.Run("8082", func(t *testing.T) {
@@ -61,8 +65,7 @@ func TestGrpcServer(t *testing.T) {
 			Name:    "appserver",
 			Address: "0.0.0.0:8082",
 			Weight:  40,
-		}, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
-		proto.RegisterTestServiceServer(server, &AppServer{})
+		}, registerService, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
 		server.Start()
 	})
 	t.Run("8083", func(t *testing.T) {
@@ -72,8 +75,7 @@ func TestGrpcServer(t *testing.T) {
 			Name:    "appserver",
 			Address: "0.0.0.0:8083",
 			Weight:  40,
-		}, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
-		proto.RegisterTestServiceServer(server, &AppServer{})
+		}, registerService, myGrpc.WithRegistry(register), myGrpc.WithLogger(logs.Helper))
 		server.Start()
 	})
 }

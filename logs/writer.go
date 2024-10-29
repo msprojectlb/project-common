@@ -3,14 +3,13 @@ package logs
 import (
 	"github.com/spf13/viper"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"io"
 )
 
 type ZapWriter struct {
 	lumberjack.Logger
 }
 
-func NewZapWriter(viper *viper.Viper) io.Writer {
+func NewZapWriter(viper *viper.Viper) *ZapWriter {
 	return &ZapWriter{
 		lumberjack.Logger{
 			Filename:  viper.GetString("app.log.file"),   // 日志文件路径

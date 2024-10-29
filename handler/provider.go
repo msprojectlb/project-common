@@ -9,17 +9,18 @@ import (
 	"github.com/msprojectlb/project-common/logs"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"io"
 	"time"
 )
 
-// Logger 全局日志
-var Logger = wire.NewSet(logs.NewZapLogger, config.NewViper, logs.NewZapWriter)
+// LoggerSet 全局日志
+var LoggerSet = wire.NewSet(logs.NewZapLogger, config.NewViper, logs.NewZapWriter, wire.Bind(new(io.Writer), new(*logs.ZapWriter)))
 
-// RegisterByEtcd etcd注册中心
-var RegisterByEtcd = wire.NewSet(byEtcd.NewRegister, NewEtcdClient, wire.Value(30))
+// RegisterByEtcdSet etcd注册中心
+var RegisterByEtcdSet = wire.NewSet(byEtcd.NewRegister, NewEtcdClient, wire.Value(30))
 
-// GrpcServer grpc服务端
-var GrpcServer = wire.NewSet(myGrpc.NewServer, registry.NewServiceInstance, GetGrpcServerOptions, RegisterByEtcd)
+// GrpcServerSet grpc服务端
+var GrpcServerSet = wire.NewSet(myGrpc.NewServer, registry.NewServiceInstance, GetGrpcServerOptions, RegisterByEtcdSet)
 
 // NewEtcdClient etcd客户端
 func NewEtcdClient(conf *viper.Viper) (*clientv3.Client, error) {

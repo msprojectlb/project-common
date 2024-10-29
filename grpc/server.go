@@ -14,12 +14,17 @@ import (
 )
 
 type Server struct {
-	si registry.ServiceInstance
-	*grpc.Server
-	registry registry.Registry
-	log      *logs.ZapLogger
+	*grpc.Server                                  // grpc服务
+	log             *logs.ZapLogger               // 日志
+	registerService func(s grpc.ServiceRegistrar) // 注册服务
+	si              registry.ServiceInstance      // 服务实例信息
+	registry        registry.Registry             // 注册中心
+
 }
+
 type Options func(s *Server)
+
+type RegisterFunc func(s grpc.ServiceRegistrar)
 
 // WithRegistry 注入注册中心
 func WithRegistry(r registry.Registry) Options {
@@ -28,6 +33,7 @@ func WithRegistry(r registry.Registry) Options {
 	}
 }
 
+// WithLogger 注入日志
 func WithLogger(log *logs.ZapLogger) Options {
 	return func(s *Server) {
 		s.log = log
@@ -53,14 +59,18 @@ func loggerFunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handle
 	)
 	return
 }
-func NewServer(si registry.ServiceInstance, opts ...Options) *Server {
+func NewServer(si registry.ServiceInstance, registerService RegisterFunc, opts ...Options) *Server {
 	rs := &Server{
-		si:     si,
-		Server: grpc.NewServer(grpc.UnaryInterceptor(loggerFunc)),
-		log:    logs.Helper,
+		si:              si,
+		Server:          grpc.NewServer(grpc.UnaryInterceptor(loggerFunc)),
+		log:             logs.Helper,
+		registerService: registerService,
 	}
 	for _, opt := range opts {
 		opt(rs)
+	}
+	if rs.registerService == nil {
+		rs.log.LogPanic("微服务尚未注册")
 	}
 	return rs
 }
@@ -71,7 +81,7 @@ func (s *Server) Start() {
 		s.log.Panic("net.listen error", zap.Error(err))
 	}
 	if s.registry != nil {
-		defer s.Close()
+		defer s.Close(syscall.SIGINT)
 		s.si.Address = listen.Addr().String()
 		err = s.registry.Register(context.Background(), s.si)
 		if err != nil {
@@ -80,16 +90,22 @@ func (s *Server) Start() {
 	}
 	go func() {
 		quit := make(chan os.Signal)
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		<-quit
-		s.log.Info("grpc server Shutting Down", zap.String("name", s.si.Name), zap.String("addr", s.si.Address))
-		s.Close()
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		sig := <-quit
+		s.log.Info(
+			"grpc server Shutting Down",
+			zap.String("name", s.si.Name),
+			zap.String("addr", s.si.Address),
+			zap.String("signal", sig.String()),
+		)
+		s.Close(sig)
 	}()
+	s.registerService(s)
 	if err = s.Serve(listen); err != nil {
 		s.log.Panic("grpc.Serve error", zap.Error(err))
 	}
 }
-func (s *Server) Close() {
+func (s *Server) Close(sig os.Signal) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	defer s.log.Sync()
@@ -97,5 +113,13 @@ func (s *Server) Close() {
 	if err != nil {
 		s.log.Error("registry.UnRegister error", zap.Error(err))
 	}
-	s.GracefulStop()
+	switch sig {
+	case syscall.SIGINT, syscall.SIGTERM:
+		s.GracefulStop()
+	case syscall.SIGQUIT:
+		s.Stop()
+	default:
+		s.log.Error("signal.Notify error", zap.String("signal", sig.String()))
+		s.GracefulStop()
+	}
 }
