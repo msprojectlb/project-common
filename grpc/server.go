@@ -81,7 +81,6 @@ func (s *Server) Start() {
 		s.log.Panic("net.listen error", zap.Error(err))
 	}
 	if s.registry != nil {
-		defer s.Close(syscall.SIGINT)
 		s.si.Address = listen.Addr().String()
 		err = s.registry.Register(context.Background(), s.si)
 		if err != nil {
@@ -92,12 +91,6 @@ func (s *Server) Start() {
 		quit := make(chan os.Signal)
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		sig := <-quit
-		s.log.Info(
-			"grpc server Shutting Down",
-			zap.String("name", s.si.Name),
-			zap.String("addr", s.si.Address),
-			zap.String("signal", sig.String()),
-		)
 		s.Close(sig)
 	}()
 	s.registerService(s)
@@ -108,18 +101,16 @@ func (s *Server) Start() {
 func (s *Server) Close(sig os.Signal) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	defer s.log.Sync()
 	err := s.registry.UnRegister(ctx, s.si)
 	if err != nil {
 		s.log.Error("registry.UnRegister error", zap.Error(err))
 	}
+	s.log.Info("server shutdown", zap.String("signal", sig.String()))
+	s.log.Sync()
 	switch sig {
 	case syscall.SIGINT, syscall.SIGTERM:
 		s.GracefulStop()
 	case syscall.SIGQUIT:
 		s.Stop()
-	default:
-		s.log.Error("signal.Notify error", zap.String("signal", sig.String()))
-		s.GracefulStop()
 	}
 }
