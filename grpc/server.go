@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"github.com/msprojectlb/project-common/grpc/middleware"
 	"github.com/msprojectlb/project-common/grpc/registry"
 	"github.com/msprojectlb/project-common/logs"
 	"go.uber.org/zap"
@@ -14,12 +15,12 @@ import (
 )
 
 type Server struct {
-	*grpc.Server                                  // grpc服务
-	log             *logs.ZapLogger               // 日志
-	registerService func(s grpc.ServiceRegistrar) // 注册服务
-	si              registry.ServiceInstance      // 服务实例信息
-	registry        registry.Registry             // 注册中心
-
+	*grpc.Server                                   // grpc服务
+	log              *logs.ZapLogger               // 日志
+	registerService  func(s grpc.ServiceRegistrar) // 注册服务
+	si               registry.ServiceInstance      // 服务实例信息
+	registry         registry.Registry             // 注册中心
+	unaryInterceptor []grpc.UnaryServerInterceptor // 中间件
 }
 
 type Options func(s *Server)
@@ -40,39 +41,37 @@ func WithLogger(log *logs.ZapLogger) Options {
 	}
 }
 
-func loggerFunc(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-	resp, err = handler(ctx, req)
-	if err != nil {
-		logs.Helper.Error("req:",
-			zap.Any("serv:", info.Server),
-			zap.String("method:", info.FullMethod),
-			zap.Any("res:", resp),
-			zap.Error(err),
-		)
-		return
+// WithUnaryInterceptor 注入中间件
+func WithUnaryInterceptor(middleware ...grpc.UnaryServerInterceptor) Options {
+	return func(s *Server) {
+		s.unaryInterceptor = append(s.unaryInterceptor, middleware...)
 	}
-	logs.Helper.Info("req:",
-		zap.Any("serv:", info.Server),
-		zap.String("method:", info.FullMethod),
-		zap.Any("res:", resp),
-		zap.Error(err),
-	)
-	return
 }
+
 func NewServer(si registry.ServiceInstance, registerService RegisterFunc, opts ...Options) *Server {
-	rs := &Server{
+	s := &Server{
 		si:              si,
-		Server:          grpc.NewServer(grpc.UnaryInterceptor(loggerFunc)),
 		log:             logs.Helper,
 		registerService: registerService,
 	}
+
 	for _, opt := range opts {
-		opt(rs)
+		opt(s)
 	}
-	if rs.registerService == nil {
-		rs.log.LogPanic("微服务尚未注册")
+
+	if s.registerService == nil {
+		s.log.Panic("微服务尚未注册")
 	}
-	return rs
+
+	middleWares := make([]grpc.UnaryServerInterceptor, 0, len(s.unaryInterceptor)+2)
+	// recover中间件
+	middleWares = append(middleWares, middleware.Recovery(s.log))
+	// 请求日志中间件
+	middleWares = append(middleWares, middleware.RecordRequestInfo(s.log))
+	middleWares = append(middleWares, s.unaryInterceptor...)
+	s.Server = grpc.NewServer(grpc.ChainUnaryInterceptor(middleWares...))
+
+	return s
 }
 
 func (s *Server) Start() {
@@ -84,6 +83,10 @@ func (s *Server) Start() {
 		s.si.Address = listen.Addr().String()
 		err = s.registry.Register(context.Background(), s.si)
 		if err != nil {
+			err = listen.Close()
+			if err != nil {
+				s.log.Panic("listen.Close error", zap.Error(err))
+			}
 			s.log.Panic("registry.Register error", zap.Error(err))
 		}
 	}
