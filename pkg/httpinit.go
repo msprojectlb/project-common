@@ -44,17 +44,20 @@ func (h *Http) Run() {
 	}()
 
 	quit := make(chan os.Signal)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	sig := <-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		h.log.Panic("server shutdown", zap.Error(err))
+	switch sig {
+	case syscall.SIGINT, syscall.SIGTERM:
+		if err := srv.Shutdown(ctx); err != nil {
+			h.log.Error("shutdown server failed", zap.Error(err))
+		}
+	case syscall.SIGQUIT:
+		if err := srv.Close(); err != nil {
+			h.log.Error("Close server failed", zap.Error(err))
+		}
 	}
-	select {
-	case <-ctx.Done():
-		h.log.Error("server shutdown timeout", zap.String("name", h.servName), zap.String("addr", h.addr))
-	default:
-		h.log.Info("http server exited", zap.String("name", h.servName), zap.String("addr", h.addr))
-	}
+	h.log.Info("http server exited", zap.String("name", h.servName), zap.String("addr", h.addr), zap.String("signal", sig.String()))
+	return
 }
