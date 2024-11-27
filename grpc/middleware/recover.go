@@ -5,6 +5,7 @@ import (
 	"github.com/msprojectlb/project-common/logs"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"runtime"
 )
 
@@ -17,6 +18,8 @@ func Recovery(log *logs.ZapLogger) grpc.UnaryServerInterceptor {
 				n := runtime.Stack(buf, false)
 				buf = buf[:n]
 				log.Error("panic", zap.Any("err", errInfo), zap.Any("req", req), zap.ByteString("stack", buf))
+				resp = nil
+				err = status.Errorf(500, "Server panic: %v", errInfo)
 			}
 		}()
 		return handler(ctx, req)

@@ -20,7 +20,7 @@ func RecordRequestInfo(log *logs.ZapLogger) grpc.UnaryServerInterceptor {
 				zap.Any("req", req),
 				zap.Any("resp", resp),
 			)
-			return resp, err
+			return
 		}
 		log.Info("rpc success",
 			zap.String("method", info.FullMethod),
