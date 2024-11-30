@@ -2,7 +2,6 @@ package handler
 
 import (
 	"github.com/google/wire"
-	"github.com/msprojectlb/project-common/config"
 	myGrpc "github.com/msprojectlb/project-common/grpc"
 	"github.com/msprojectlb/project-common/grpc/registry"
 	"github.com/msprojectlb/project-common/grpc/registry/byEtcd"
@@ -14,7 +13,7 @@ import (
 )
 
 // LoggerSet 全局日志
-var LoggerSet = wire.NewSet(logs.NewZapLogger, config.NewViper, logs.NewZapWriter, wire.Bind(new(io.Writer), new(*logs.ZapWriter)))
+var LoggerSet = wire.NewSet(logs.NewZapLogger, logs.NewZapWriter, wire.Bind(new(io.Writer), new(*logs.ZapWriter)))
 
 // RegisterByEtcdSet etcd注册中心
 var RegisterByEtcdSet = wire.NewSet(byEtcd.NewRegister, NewEtcdClient, wire.Value(30))

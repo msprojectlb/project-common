@@ -7,6 +7,10 @@ import (
 	"sync"
 )
 
+func init() {
+	balancer.Register(base.NewBalancerBuilder(WeightPollingBalancerName, &WeightPollingBalancer{}, base.Config{HealthCheck: true}))
+}
+
 const WeightPollingBalancerName = "weight-polling-balancer"
 
 type node struct {

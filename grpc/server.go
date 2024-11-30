@@ -87,6 +87,12 @@ func (s *Server) Start() {
 			if err != nil {
 				s.log.Panic("listen.Close error", zap.Error(err))
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			err = s.registry.UnRegister(ctx, s.si)
+			cancel()
+			if err != nil {
+				s.log.Error("registry.UnRegister error", zap.Error(err))
+			}
 			s.log.Panic("registry.Register error", zap.Error(err))
 		}
 	}

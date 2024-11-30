@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const MsgName = "msg"
-
 var Helper *ZapLogger
 var once sync.Once
 
@@ -27,7 +25,11 @@ func InitHelper(log *ZapLogger) {
 }
 
 func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
+	var res ZapLogger
 	var level zapcore.Level
+	var encoder zapcore.Encoder
+	var encoderConfig zapcore.EncoderConfig
+
 	switch viper.GetString("app.log.level") {
 	case "debug":
 		level = zap.DebugLevel
@@ -40,55 +42,41 @@ func NewZapLogger(viper *viper.Viper, w io.Writer) *ZapLogger {
 	default:
 		level = zap.InfoLevel
 	}
-	var encoder zapcore.Encoder
-	if viper.GetString("app.log.encode") == "console" {
-		encoder = zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
-			TimeKey:        "ts",
-			LevelKey:       "level",
-			CallerKey:      "caller",
-			MessageKey:     "msg",
-			StacktraceKey:  "stack",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseColorLevelEncoder,
-			EncodeTime:     timeEncoder,
-			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:   zapcore.FullCallerEncoder,
-		})
-	} else {
-		encoder = zapcore.NewJSONEncoder(zapcore.EncoderConfig{
-			TimeKey:        "ts",
-			LevelKey:       "level",
-			CallerKey:      "caller",
-			FunctionKey:    "func",
-			MessageKey:     "msg",
-			StacktraceKey:  "stack",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseLevelEncoder,
-			EncodeTime:     timeEncoder,
-			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		})
+
+	encoderConfig = zapcore.EncoderConfig{
+		TimeKey:        "ts",
+		LevelKey:       "lv",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stack",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     timeEncoder,
+		EncodeDuration: zapcore.MillisDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
-	var core zapcore.Core
-	core = zapcore.NewCore(
-		encoder,            // 编码器配置
-		zapcore.AddSync(w), // 仅打印到文件
-		level,              // 日志级别
-	)
-	var res ZapLogger
+	encoder = zapcore.NewJSONEncoder(encoderConfig)
+	if viper.GetString("app.log.encode") == "console" {
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	}
 	if viper.GetString("app.env") == "dev" {
-		core = zapcore.NewCore(
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+		core := zapcore.NewCore(
 			encoder, // 编码器配置
 			zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(w)), // 打印到控制台和文件
 			level, // 日志级别
 		)
-		//开发环境
 		res.Logger = zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
 		InitHelper(&res)
 		return &res
 	}
+	core := zapcore.NewCore(
+		encoder,            // 编码器配置
+		zapcore.AddSync(w), // 仅打印到文件
+		level,              // 日志级别
+	)
 	res.Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
-	//正式环境
 	InitHelper(&res)
 	return &res
 }

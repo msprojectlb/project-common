@@ -7,6 +7,10 @@ import (
 	"sync/atomic"
 )
 
+func init() {
+	balancer.Register(base.NewBalancerBuilder(PollingBalancerName, &PollingBalancer{}, base.Config{HealthCheck: true}))
+}
+
 const PollingBalancerName = "polling-balancer"
 
 // PollingBalancer 轮询

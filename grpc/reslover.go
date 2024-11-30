@@ -62,8 +62,6 @@ func (r *Resolver) ResolveNow(options resolver.ResolveNowOptions) {
 	err = r.cc.UpdateState(resolver.State{
 		Addresses: address,
 	})
-	//添加延迟时间，否则自定义轮询插件会拿不到可用连接
-	time.Sleep(time.Millisecond * 10)
 	if err != nil {
 		r.cc.ReportError(err)
 		return
